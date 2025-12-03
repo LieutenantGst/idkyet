@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Google Snake Game - Updated with Mods & Settings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #202124;
+    font-family: 'Roboto', Arial, sans-serif;
+    overflow: hidden;
+  }
+  #game-container {
+    width: 600px;
+    height: 670px;
+    background: #1a1a1a;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  #header {
+    height: 70px;
+    background: #4a752c;
+    position: relative;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .counter {
+    display: flex;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+  }
+  .icon {
+    width: 38px;
+    height: 38px;
+    margin-right: 8px;
+  }
+  #controls {
+    display: flex;
+    gap: 12px;
+  }
+  #controls img, #settings-btn {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    opacity: 0.9;
+    background: none;
+    border: none;
+  }
+  #controls img:hover, #settings-btn:hover { opacity: 1; }
+  #settings-btn {
+    font-size: 20px;
+    color: white;
+  }
+  canvas {
+    display: block;
+    background: #578a34;
+  }
+  #game-over {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+    z-index: 10;
+  }
+  #game-over.show { opacity: 1; pointer-events: all; }
+  #final-score { font-size: 48px; margin: 20px 0; }
+  button {
+    margin: 10px;
+    padding: 12px 32px;
+    font-size: 20px;
+    background: #15c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:hover { background: #0af; }
+
+  /* Settings Menu */
+  #settings {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 20;
+  }
+  #settings.show { opacity: 1; pointer-events: all; }
+  .setting-group {
+    margin: 10px 0;
+    text-align: center;
+  }
+  .setting-group label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  .setting-group select, .setting-group input {
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    width: 200px;
+  }
+  #close-settings {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="header">
+    <div class="counter">
+      <img class="icon" src="https://www.google.com/logos/fnbx/snake_arcade/apple_types.png" alt="Food">
+      <span id="apples">0</span>
+    </div>
+    <div class="counter">
+      <img class="icon" src="https://www.google.com/logos/fnbx/snake_arcade/trophy_types.png" alt="Trophy">
+      <span id="score">0</span>
+    </div>
+    <div id="controls">
+      <button id="settings-btn">⚙️</button>
+      <img id="sound-btn" src="https://www.gstatic.com/images/icons/material/system/2x/volume_up_white_24dp.png" alt="Sound">
+      <img id="restart-btn" src="https://www.gstatic.com/images/icons/material/system/2x/refresh_white_24dp.png" alt="Restart">
+    </div>
+  </div>
+  <canvas id="canvas" width="600" height="600"></canvas>
+
+  <div id="game-over">
+    <div>Game Over!</div>
+    <div id="final-score">0</div>
+    <button id="play-again">Play Again</button>
+  </div>
+
+  <div id="settings">
+    <button id="close-settings">&times;</button>
+    <h2>Mods & Settings</h2>
+    <div class="setting-group">
+      <label>Board Size:</label>
+      <select id="board-size-select">
+        <option value="small">Small (20x20)</option>
+        <option value="standard">Standard (30x30)</option>
+        <option value="large">Large (40x40)</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Number of Food:</label>
+      <select id="food-count-select">
+        <option value="1">1</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Speed:</label>
+      <select id="speed-select">
+        <option value="2">Very Slow</option>
+        <option value="4">Slow</option>
+        <option value="6">Normal</option>
+        <option value="8">Fast</option>
+        <option value="10">Very Fast</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Theme:</label>
+      <select id="theme-select">
+        <option value="classic">Classic Green</option>
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+        <option value="rainbow">Rainbow</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Food Type:</label>
+      <select id="food-select">
+        <option value="apple">Apple</option>
+        <option value="fruit">Fruit Mix</option>
+        <option value="pizza">Pizza</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Border Mode:</label>
+      <select id="border-select">
+        <option value="wrap">Wrap Around</option>
+        <option value="walls">Walls</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Mouse Mode:</label>
+      <select id="mouse-mode-select">
+        <option value="off">Off</option>
+        <option value="on">On</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Background Color:</label>
+      <input type="color" id="bg-color" value="#578a34">
+    </div>
+    <div class="setting-group">
+      <label>Snake Color:</label>
+      <input type="color" id="snake-color" value="#4CAF50">
+    </div>
+    <button id="apply-settings">Apply & Close</button>
+  </div>
+</div>
+
+<script>
+// === Google Snake with Mods Inspired by googlesnakemods.com ===
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let gridSize = 20; // default standard
+let numGrids = 30; // default 30x30
+let count = 0;
+let score = 0;
+let foodEaten = 0;
+let foodItems = [];
+
+// Settings
+let settings = {
+  boardSize: 'standard', // small, standard, large
+  foodCount: 1,
+  speed: 6,
+  theme: 'classic',
+  food: 'apple',
+  border: 'wrap',
+  mouseMode: 'off',
+  bgColor: '#578a34',
+  snakeColor: '#4CAF50'
+};
+
+// Update board based on size
+function updateBoardSize() {
+  switch (settings.boardSize) {
+    case 'small':
+      numGrids = 20;
+      gridSize = 30;
+      break;
+    case 'standard':
+      numGrids = 30;
+      gridSize = 20;
+      break;
+    case 'large':
+      numGrids = 40;
+      gridSize = 15;
+      break;
+  }
+  canvas.width = numGrids * gridSize;
+  canvas.height = numGrids * gridSize;
+  // Center canvas if needed, but since container is fixed, adjust if necessary
+  document.getElementById('game-container').style.width = `${canvas.width}px`;
+  document.getElementById('game-container').style.height = `${70 + canvas.height}px`;
+}
+
+// Update theme and colors
+function updateTheme() {
+  let bg = settings.bgColor;
+  if (settings.theme === 'dark') bg = '#1a1a1a';
+  else if (settings.theme === 'light') bg = '#f0f0f0';
+  else if (settings.theme === 'rainbow') bg = `hsl(${Date.now() * 0.01 % 360}, 70%, 50%)`;
+  canvas.style.background = bg;
+}
+
+// Snake
+let snake = {
+  x: gridSize * (numGrids / 2),
+  y: gridSize * (numGrids / 2),
+  dx: gridSize,
+  dy: 0,
+  cells: [],
+  maxCells: 4
+};
+
+let soundEnabled = true;
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function resetGame() {
+  updateBoardSize();
+  snake.x = gridSize * Math.floor(numGrids / 2);
+  snake.y = gridSize * Math.floor(numGrids / 2);
+  snake.cells = [];
+  snake.maxCells = 4;
+  snake.dx = gridSize;
+  snake.dy = 0;
+  score = 0;
+  foodEaten = 0;
+  document.getElementById('score').textContent = score;
+  document.getElementById('apples').textContent = foodEaten;
+  foodItems = [];
+  for (let i = 0; i < settings.foodCount; i++) {
+    placeFood();
+  }
+  document.getElementById('game-over').classList.remove('show');
+  updateTheme();
+}
+
+function placeFood() {
+  const newFood = {
+    x: getRandomInt(0, numGrids) * gridSize,
+    y: getRandomInt(0, numGrids) * gridSize
+  };
+  // Avoid snake and other food
+  if (snake.cells.some(cell => cell.x === newFood.x && cell.y === newFood.y) ||
+      foodItems.some(f => f.x === newFood.x && f.y === newFood.y)) {
+    placeFood();
+    return;
+  }
+  foodItems.push(newFood);
+}
+
+function playSound() {
+  if (!soundEnabled) return;
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  oscillator.frequency.value = 800;
+  oscillator.type = 'sine';
+  gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+  oscillator.start(audioCtx.currentTime);
+  oscillator.stop(audioCtx.currentTime + 0.1);
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+
+  if (++count < settings.speed) return;
+  count = 0;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Move snake
+  snake.x += snake.dx;
+  snake.y += snake.dy;
+
+  // Border
+  if (settings.border === 'walls') {
+    if (snake.x >= canvas.width || snake.x < 0 || snake.y >= canvas.height || snake.y < 0) {
+      endGame();
+      return;
+    }
+  } else {
+    snake.x = (snake.x + canvas.width) % canvas.width;
+    snake.y = (snake.y + canvas.height) % canvas.height;
+  }
+
+  // Cells
+  snake.cells.unshift({ x: snake.x, y: snake.y });
+  if (snake.cells.length > snake.maxCells) {
+    snake.cells.pop();
+  }
+
+  // Draw food
+  foodItems.forEach(f => {
+    ctx.fillStyle = settings.food === 'apple' ? '#e74c3c' : settings.food === 'fruit' ? '#f39c12' : '#9b59b6';
+    ctx.beginPath();
+    ctx.arc(f.x + gridSize / 2, f.y + gridSize / 2, gridSize / 2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Draw snake
+  snake.cells.forEach((cell, index) => {
+    let sColor = settings.snakeColor;
+    if (settings.theme === 'rainbow') sColor = `hsl(${(index * 30) % 360}, 70%, 50%)`;
+    ctx.fillStyle = index === 0 ? sColor : '#8BC34A';
+    ctx.fillRect(cell.x + 1, cell.y + 1, gridSize - 2, gridSize - 2);
+
+    // Eat food
+    foodItems = foodItems.filter(f => {
+      if (cell.x === f.x && cell.y === f.y) {
+        snake.maxCells++;
+        score += 10;
+        foodEaten++;
+        document.getElementById('score').textContent = score;
+        document.getElementById('apples').textContent = foodEaten;
+        playSound();
+        placeFood(); // Place new food
+        return false;
+      }
+      return true;
+    });
+
+    // Self collision
+    for (let i = index + 1; i < snake.cells.length; i++) {
+      if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+        endGame();
+      }
+    }
+  });
+  updateTheme(); // for rainbow
+}
+
+function endGame() {
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('game-over').classList.add('show');
+}
+
+// Keyboard controls
+document.addEventListener('keydown', e => {
+  if (settings.mouseMode === 'on') return;
+  const goingUp = snake.dy === -gridSize;
+  const goingDown = snake.dy === gridSize;
+  const goingRight = snake.dx === gridSize;
+  const goingLeft = snake.dx === -gridSize;
+
+  if (e.key === 'ArrowLeft' && !goingRight) {
+    snake.dx = -gridSize;
+    snake.dy = 0;
+  } else if (e.key === 'ArrowUp' && !goingDown) {
+    snake.dx = 0;
+    snake.dy = -gridSize;
+  } else if (e.key === 'ArrowRight' && !goingLeft) {
+    snake.dx = gridSize;
+    snake.dy = 0;
+  } else if (e.key === 'ArrowDown' && !goingUp) {
+    snake.dx = 0;
+    snake.dy = gridSize;
+  }
+});
+
+// Mouse mode
+let mouseListener = null;
+function toggleMouseMode() {
+  if (settings.mouseMode === 'on') {
+    mouseListener = e => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const dx = mouseX - snake.x;
+      const dy = mouseY - snake.y;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 0 && snake.dx !== -gridSize) {
+          snake.dx = gridSize;
+          snake.dy = 0;
+        } else if (dx < 0 && snake.dx !== gridSize) {
+          snake.dx = -gridSize;
+          snake.dy = 0;
+        }
+      } else {
+        if (dy > 0 && snake.dy !== -gridSize) {
+          snake.dx = 0;
+          snake.dy = gridSize;
+        } else if (dy < 0 && snake.dy !== gridSize) {
+          snake.dx = 0;
+          snake.dy = -gridSize;
+        }
+      }
+    };
+    canvas.addEventListener('mousemove', mouseListener);
+  } else if (mouseListener) {
+    canvas.removeEventListener('mousemove', mouseListener);
+  }
+}
+
+// Touch controls (for mobile)
+let touchStartX = 0, touchStartY = 0;
+canvas.addEventListener('touchstart', e => {
+  if (settings.mouseMode === 'on') return;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+canvas.addEventListener('touchend', e => {
+  if (settings.mouseMode === 'on' || !touchStartX || !touchStartY) return;
+  let touchEndX = e.changedTouches[0].clientX;
+  let touchEndY = e.changedTouches[0].clientY;
+  let diffX = touchEndX - touchStartX;
+  let diffY = touchEndY - touchStartY;
+
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX > 0 && snake.dx !== -gridSize) { snake.dx = gridSize; snake.dy = 0; }
+    else if (diffX < 0 && snake.dx !== gridSize) { snake.dx = -gridSize; snake.dy = 0; }
+  } else {
+    if (diffY > 0 && snake.dy !== -gridSize) { snake.dx = 0; snake.dy = gridSize; }
+    else if (diffY < 0 && snake.dy !== gridSize) { snake.dx = 0; snake.dy = -gridSize; }
+  }
+  touchStartX = 0;
+  touchStartY = 0;
+}, {passive: true});
+
+// Buttons
+document.getElementById('sound-btn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById('sound-btn').src = soundEnabled 
+    ? 'https://www.gstatic.com/images/icons/material/system/2x/volume_up_white_24dp.png'
+    : 'https://www.gstatic.com/images/icons/material/system/2x/volume_off_white_24dp.png';
+});
+
+document.getElementById('restart-btn').addEventListener('click', resetGame);
+document.getElementById('play-again').addEventListener('click', resetGame);
+
+document.getElementById('settings-btn').addEventListener('click', () => {
+  document.getElementById('settings').classList.add('show');
+});
+
+document.getElementById('close-settings').addEventListener('click', () => {
+  document.getElementById('settings').classList.remove('show');
+});
+
+document.getElementById('apply-settings').addEventListener('click', () => {
+  settings.boardSize = document.getElementById('board-size-select').value;
+  settings.foodCount = parseInt(document.getElementById('food-count-select').value);
+  settings.speed = parseInt(document.getElementById('speed-select').value);
+  settings.theme = document.getElementById('theme-select').value;
+  settings.food = document.getElementById('food-select').value;
+  settings.border = document.getElementById('border-select').value;
+  settings.mouseMode = document.getElementById('mouse-mode-select').value;
+  settings.bgColor = document.getElementById('bg-color').value;
+  settings.snakeColor = document.getElementById('snake-color').value;
+  toggleMouseMode();
+  document.getElementById('settings').classList.remove('show');
+  resetGame();
+});
+
+// Init
+resetGame();
+toggleMouseMode();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
